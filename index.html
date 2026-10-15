@@ -134,37 +134,6 @@
         <form id="mainForm" onsubmit="return submitForm(event)">
           <div id="questions"></div>
 
-          <h4>Subir documentos obligatorios</h4>
-          <div class="field">
-            <label>Identificación (frontal):</label>
-            <input type="file" id="idFront" accept="image/*" onchange="previewFile(this,'idFrontPreview')" required>
-            <div id="idFrontPreview" class="preview"></div>
-          </div>
-          <div class="field">
-            <label>Identificación (reverso):</label>
-            <input type="file" id="idBack" accept="image/*" onchange="previewFile(this,'idBackPreview')" required>
-            <div id="idBackPreview" class="preview"></div>
-          </div>
-          <div class="field">
-            <label>Escrito (imagen o pdf):</label>
-            <input type="file" id="written" accept="image/*,application/pdf" onchange="previewFile(this,'writtenPreview')" required>
-            <div id="writtenPreview" class="preview"></div>
-          </div>
-          <div class="field">
-            <label>Comprobante de domicilio (PDF, PNG, JPEG o JPG):</label>
-            <input type="file" id="comprobante" accept=".pdf,.png,.jpeg,.jpg,application/pdf,image/png,image/jpeg" onchange="validarArchivo(this,'comprobantePreview','documento')" required>
-            <div id="comprobantePreview" class="preview"></div>
-          </div>
-          <div class="field">
-            <label>Foto exterior (obligatoria):</label>
-            <input type="file" id="fotoExterior" accept=".png,.jpeg,.jpg,image/png,image/jpeg" onchange="validarArchivo(this,'fotoExteriorPreview','imagen')" required>
-            <div id="fotoExteriorPreview" class="preview"></div>
-          </div>
-          <div class="field">
-            <label>Foto interior (obligatoria):</label>
-            <input type="file" id="fotoInterior" accept=".png,.jpeg,.jpg,image/png,image/jpeg" onchange="validarArchivo(this,'fotoInteriorPreview','imagen')" required>
-            <div id="fotoInteriorPreview" class="preview"></div>
-          </div>
           <div style="text-align:center;">
             <button type="submit">Enviar formulario</button>
           </div>
@@ -180,7 +149,7 @@
     <script>
       // PEGA LA URL /exec DE LA IMPLEMENTACIÓN NUEVA DE APPS SCRIPT.
       const FORM_TYPE = 'reactivacion';
-      const API_URL = 'https://script.google.com/macros/s/AKfycby8KDmxJLPEPFRG9Z9Ccku-IqUMpKFNoN8oxpsfbLBKBn5tRfTX06sk4xBG-F_Xq1tx/exec';
+      const API_URL = 'https://script.google.com/macros/s/AKfycbyFW9M0hahTsYXJ68F8NKfiy1P-4Ye-WuPKzXrvciWta9g5AEiGgGlZJ1YgYEJcsfDu/exec';
       const pending = new Map();
       window.addEventListener('message', function(event) {
         // El mensaje proviene del iframe que carga Apps Script / googleusercontent.
@@ -386,16 +355,6 @@
         });
         Object.keys(answers).forEach(function(k){if(Array.isArray(answers[k])) answers[k]=answers[k].join(', ');});
 
-        const campos = [
-          ['idFront','idFront'], ['idBack','idBack'], ['written','written'],
-          ['comprobante','comprobante'], ['fotoExterior','fotoExterior'], ['fotoInterior','fotoInterior']
-        ];
-        for (const [id] of campos) {
-          if (!document.getElementById(id).files[0]) {
-            alert('Todos los documentos son obligatorios. Falta: ' + id);
-            return false;
-          }
-        }
         // Validar archivos dinámicos antes de bloquear la pantalla.
         for (const q of currentQuestions) {
           if (!q.activa || q.tipo!=='archivo') continue;
@@ -413,20 +372,11 @@
         var filesToSend = [];
         try {
           for (const q of currentQuestions) {
-            if(!q.activa||q.tipo!=='archivo')continue;
-            const el=document.querySelector('#questions input[name="'+q.id+'"]');
-            if(el && el.files[0]) campos.push([q.id,q.id]);
-          }
-          for (const [id, campo] of campos) {
-            const el=document.getElementById(id)||document.querySelector('#questions input[name="'+id+'"]');
-            const file = el.files[0];
-            if (['comprobante','fotoExterior','fotoInterior'].includes(id)) {
-              const ext = file.name.split('.').pop().toLowerCase();
-              const permitido = id === 'comprobante' ? ['pdf','png','jpeg','jpg'] : ['png','jpeg','jpg'];
-              if (!permitido.includes(ext)) throw new Error('Formato inválido en ' + id);
-            }
-            const convertido = await fileToBase64(file);
-            convertido.field = campo;
+            if (!q.activa || q.tipo !== 'archivo') continue;
+            const el = Array.from(document.querySelectorAll('#questions input[type="file"]')).find(function(x){return x.name===q.id;});
+            if (!el || !el.files[0]) continue;
+            const convertido = await fileToBase64(el.files[0]);
+            convertido.field = q.id;
             filesToSend.push(convertido);
           }
         } catch(err) {
